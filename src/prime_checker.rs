@@ -1,6 +1,6 @@
-use async_mutex::Mutex;
+use async_mutex::Mutex as AsyncMutex;
 use futures::task::{waker_ref, ArcWake};
-use std::sync::{Arc, Mutex as StdMutex};
+use std::sync::{Arc, Mutex};
 use std::task::{Context, Poll};
 use std::thread;
 use std::time::Duration;
@@ -51,7 +51,7 @@ impl PrimeChecker {
 }
 
 struct PrimeWaker {
-    shared_state: Arc<StdMutex<SharedState>>,
+    shared_state: Arc<Mutex<SharedState>>,
 }
 
 impl ArcWake for PrimeWaker {
@@ -66,8 +66,8 @@ struct SharedState {
 }
 
 pub async fn is_prime_number(number: u64) -> bool {
-    let prime_checker = Arc::new(Mutex::new(PrimeChecker::new(number)));
-    let shared_state = Arc::new(StdMutex::new(SharedState { woken: false }));
+    let prime_checker = Arc::new(AsyncMutex::new(PrimeChecker::new(number)));
+    let shared_state = Arc::new(Mutex::new(SharedState { woken: false }));
 
     // Create an Arc for PrimeWaker and store it in a variable
     let prime_waker = Arc::new(PrimeWaker {
@@ -88,13 +88,13 @@ pub async fn is_prime_number(number: u64) -> bool {
                 drop(checker);
                 // Wait until woken
                 loop {
-                    let mut state = shared_state.lock().unwrap();
-                    if state.woken {
-                        state.woken = false;
-                        break;
+                    {
+                        let mut state = shared_state.lock().unwrap();
+                        if state.woken {
+                            state.woken = false;
+                            break;
+                        }
                     }
-                    // Release the lock before sleeping to avoid deadlock
-                    drop(state);
                     yield_now().await;
                 }
             }
