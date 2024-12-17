@@ -4,6 +4,7 @@ use std::sync::{Arc, Mutex as StdMutex};
 use std::task::{Context, Poll};
 use std::thread;
 use std::time::Duration;
+use yield_now::yield_now;
 
 pub struct PrimeChecker {
     number: u64,
@@ -25,7 +26,7 @@ impl PrimeChecker {
             return Poll::Ready(result);
         }
 
-        while self.current * self.current <= self.number {
+        if self.current * self.current <= self.number {
             if self.number % self.current == 0 {
                 self.is_prime = Some(false);
                 return Poll::Ready(false);
@@ -94,7 +95,7 @@ pub async fn is_prime_number(number: u64) -> bool {
                     }
                     // Release the lock before sleeping to avoid deadlock
                     drop(state);
-                    thread::sleep(Duration::from_millis(10));
+                    yield_now().await;
                 }
             }
         }

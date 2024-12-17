@@ -1,4 +1,5 @@
 mod prime_checker;
+
 use crate::prime_checker::is_prime_number;
 
 #[tokio::main]
