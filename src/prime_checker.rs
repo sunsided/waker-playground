@@ -2,8 +2,6 @@ use async_mutex::Mutex as AsyncMutex;
 use futures::task::{waker_ref, ArcWake};
 use std::sync::{Arc, Mutex};
 use std::task::{Context, Poll};
-use std::thread;
-use std::time::Duration;
 use yield_now::yield_now;
 
 pub struct PrimeChecker {
@@ -33,15 +31,9 @@ impl PrimeChecker {
             }
             self.current += 1;
 
-            // Simulate asynchronous work by scheduling a wake-up
+            // Simulate asynchronous work by issuing a wake-up
             let waker = cx.waker().clone();
-            let current = self.current;
-            thread::spawn(move || {
-                thread::sleep(Duration::from_millis(10));
-                println!("Checked up to {}", current);
-                waker.wake();
-            });
-
+            waker.wake();
             return Poll::Pending;
         }
 
